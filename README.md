@@ -2,7 +2,6 @@
 
 A full-stack AI-powered finance management platform built with Next.js, Tailwind CSS, Prisma, Clerk, Inngest, and more. This application helps users manage their finances, track expenses, set budgets, and get AI-powered insights.
 
-<img width="1470" alt="Screenshot 2024-12-10 at 9 45 45 AM" src="https://github.com/user-attachments/assets/1bc50b85-b421-4122-8ba4-ae68b2b61432">
 
 ## Features
 
