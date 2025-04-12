@@ -122,6 +122,11 @@ export function AuthProvider({ children }) {
       
       return { user: userCredential.user, isNewUser };
     } catch (err) {
+      // Handle specific Firebase auth errors
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User closed the popup, don't show an error message
+        return null;
+      }
       setError(err.message);
       throw err;
     }

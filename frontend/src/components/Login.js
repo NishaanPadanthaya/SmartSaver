@@ -23,7 +23,11 @@ function Login() {
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to sign in: ' + (err.message || 'Invalid credentials'));
+      if (err.message.includes('auth/invalid-login-credentials')) {
+        setError('Incorrect email or password. Please try again.');
+      } else {
+        setError('Failed to sign in: ' + (err.message || 'An error occurred'));
+      }
     } finally {
       setLoading(false);
     }
@@ -34,7 +38,13 @@ function Login() {
       setError('');
       setLoading(true);
       
-      await loginWithGoogle();
+      const result = await loginWithGoogle();
+      
+      if (result === null) {
+        // User closed the popup, just reset loading state
+        setLoading(false);
+        return;
+      }
       
       // Redirect to dashboard
       navigate('/dashboard');
