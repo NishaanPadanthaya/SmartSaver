@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
+import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -32,13 +32,13 @@ export function AuthProvider({ children }) {
     try {
       // Create user in Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
+      
       // Update display name
       await updateProfile(userCredential.user, { displayName });
-
+      
       // Get ID token
       const token = await userCredential.user.getIdToken();
-
+      
       try {
         // Register user in our backend
         await axios.post(`${API_URL}/users/register`, {
@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
 
       // Sign out after registration so user can explicitly sign in
       await signOut(auth);
-
+      
       return userCredential.user;
     } catch (err) {
       setError(err.message);
@@ -83,12 +83,12 @@ export function AuthProvider({ children }) {
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-
+      
       // Get ID token
       const token = await userCredential.user.getIdToken();
-
+      
       let isNewUser = false;
-
+      
       try {
         // Try to register user in our backend (in case they're new)
         await axios.post(`${API_URL}/users/register`, {
@@ -114,12 +114,12 @@ export function AuthProvider({ children }) {
           isNewUser = true;
         }
       }
-
+      
       // If this was a new user registration, sign out so they can explicitly sign in
       if (isNewUser) {
         await signOut(auth);
       }
-
+      
       return { user: userCredential.user, isNewUser };
     } catch (err) {
       // Handle specific Firebase auth errors
@@ -151,7 +151,7 @@ export function AuthProvider({ children }) {
   // Fetch user profile from backend
   async function fetchUserProfile() {
     if (!currentUser) return null;
-
+    
     try {
       const token = await currentUser.getIdToken();
       const response = await axios.get(`${API_URL}/users/me`, {
@@ -159,7 +159,7 @@ export function AuthProvider({ children }) {
           Authorization: `Bearer ${token}`
         }
       });
-
+      
       setUserProfile(response.data);
       return response.data;
     } catch (err) {
@@ -173,7 +173,7 @@ export function AuthProvider({ children }) {
   // Update user profile
   async function updateUserProfile(profileData) {
     if (!currentUser) return null;
-
+    
     try {
       const token = await currentUser.getIdToken();
       const response = await axios.put(`${API_URL}/users/me`, profileData, {
@@ -181,7 +181,7 @@ export function AuthProvider({ children }) {
           Authorization: `Bearer ${token}`
         }
       });
-
+      
       setUserProfile(response.data);
       return response.data;
     } catch (err) {
@@ -195,7 +195,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       setLoading(false);
-
+      
       if (user) {
         // Fetch user profile when authenticated
         await fetchUserProfile();
@@ -203,7 +203,7 @@ export function AuthProvider({ children }) {
         setUserProfile(null);
       }
     });
-
+    
     return unsubscribe;
   }, []);
 
@@ -226,4 +226,4 @@ export function AuthProvider({ children }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-}
+} 
