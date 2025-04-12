@@ -1,105 +1,100 @@
-# Budget App - FARM Stack with Firebase Auth
+# SmartSaver App
 
-This is an AI-powered budget management application built with the FARM stack (FastAPI, React, MongoDB) and Firebase Authentication.
+A personal finance management application with budget tracking, savings goals, and financial insights.
 
 ## Features
 
-- User registration and authentication with Firebase
-- User profiles with customizable settings
-- Financial goal setting
-- Budget preferences and customization
+- User authentication with Firebase
+- Budget management
+- Savings goals tracking
+- Financial insights and reports
+- Profile management
 
-## Project Structure
+## Development Setup
 
-```
-budget-app/
-├── backend/
-│   ├── app/
-│   │   ├── config/         # Configuration files
-│   │   ├── models/         # Pydantic models
-│   │   ├── routes/         # API routes
-│   │   └── main.py         # FastAPI application
-│   ├── requirements.txt    # Python dependencies
-│   └── main.py             # Entry point
-└── frontend/
-    ├── public/
-    ├── src/
-    │   ├── components/     # React components
-    │   ├── context/        # React context (auth)
-    │   ├── firebase/       # Firebase configuration
-    │   ├── pages/          # Page components
-    │   ├── App.js          # Main app component
-    │   └── index.js        # React entry point
-    ├── .env.example        # Environment variables example
-    └── package.json        # Node.js dependencies
-```
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js and npm
-- Python 3.8 or higher
-- MongoDB
-- Firebase project
-
-### Backend Setup
-
-1. Navigate to the backend directory:
-   ```
-   cd backend
-   ```
-
-2. Create a virtual environment and activate it:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-4. Create a `.env` file based on `.env.example` and add your MongoDB and Firebase credentials.
-
-5. Start the backend server:
-   ```
-   python main.py
-   ```
-
-### Frontend Setup
+### Frontend (React)
 
 1. Navigate to the frontend directory:
-   ```
-   cd frontend
-   ```
+
+```bash
+cd SmartSaver/frontend
+```
 
 2. Install dependencies:
-   ```
-   npm install
-   ```
 
-3. Create a `.env` file based on `.env.example` and add your Firebase configuration.
+```bash
+npm install
+```
 
-4. Start the development server:
-   ```
-   npm start
-   ```
+3. Create a `.env` file with your Firebase configuration:
 
-### Firebase Setup
+```
+REACT_APP_API_URL=http://localhost:8000/api
+REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+REACT_APP_FIREBASE_APP_ID=your_firebase_app_id
+REACT_APP_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
+```
 
-1. Create a new Firebase project at https://console.firebase.google.com/
-2. Enable Authentication and add Email/Password and Google as sign-in methods
-3. Generate a Firebase Admin SDK private key for the backend
-4. Add the web app to your Firebase project and get the configuration
-5. Add the Firebase configuration to your frontend and backend environment files
+4. Start the frontend development server:
 
-## Development
+```bash
+npm start
+```
 
-- Backend API will be available at: http://localhost:8000
-- Frontend development server will be available at: http://localhost:3000
+### Backend (FastAPI)
 
-## License
+1. Navigate to the backend directory:
 
-MIT
+```bash
+cd SmartSaver/backend
+```
+
+2. Create and activate a virtual environment:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up your Firebase service account:
+   - Download your Firebase service account key from the Firebase console
+   - Save it as `serviceAccountKey.json` in the backend directory
+
+5. Start the backend server:
+
+```bash
+python main.py
+```
+
+## Development Mode (No MongoDB Required)
+
+If you don't have MongoDB installed or available, the application will use an in-memory database for development:
+
+1. Start the backend server as normal:
+
+```bash
+python main.py
+```
+
+2. In the frontend, enable "Dev Mode" by clicking the "Dev Mode: OFF" button in the navigation bar
+3. This allows you to use the application without Firebase authentication or MongoDB
+
+## API Endpoints
+
+- `/api/users` - User profile management
+- `/api/budgets` - Budget management
+- `/api/savings` - Savings goals management
+
+## Deployment
+
+Instructions for deploying to production will be added in a future update.

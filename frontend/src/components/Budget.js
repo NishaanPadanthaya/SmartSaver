@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../utils/authUtils'; // Using our intercepted axios
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// Debug the API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+console.log('Budget component - API_URL:', API_URL);
 
 const Budget = () => {
-  const { currentUser, token } = useAuth();
+  const { currentUser } = useAuth(); // We don't need token anymore
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -34,11 +36,7 @@ const Budget = () => {
   const fetchBudgets = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/budgets`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await axios.get(`${API_URL}/budgets/${currentUser.uid}`);
       setBudgets(response.data);
       setLoading(false);
     } catch (error) {
@@ -130,20 +128,13 @@ const Budget = () => {
         ...cat,
         limit: parseFloat(cat.limit)
       }));
-      
+
       if (editingBudget) {
-        await axios.put(`${API_URL}/api/budgets/${editingBudget._id}`, budgetData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        budgetData._id = editingBudget._id;
+        await axios.put(`${API_URL}/budgets/${currentUser.uid}`, budgetData);
         toast.success('Budget updated successfully');
       } else {
-        await axios.post(`${API_URL}/api/budgets`, budgetData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await axios.post(`${API_URL}/budgets/${currentUser.uid}`, budgetData);
         toast.success('Budget created successfully');
       }
       
@@ -158,11 +149,7 @@ const Budget = () => {
   const deleteBudget = async (budgetId) => {
     if (window.confirm('Are you sure you want to delete this budget?')) {
       try {
-        await axios.delete(`${API_URL}/api/budgets/${budgetId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await axios.delete(`${API_URL}/budgets/${currentUser.uid}/${budgetId}`);
         toast.success('Budget deleted successfully');
         fetchBudgets();
       } catch (error) {

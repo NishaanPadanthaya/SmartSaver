@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../utils/authUtils'; // Using our intercepted axios
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { FaTrash, FaEdit, FaPlus, FaPiggyBank } from 'react-icons/fa';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// Debug the API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+console.log('SavingsGoals component - API_URL:', API_URL);
 
 const SavingsGoals = () => {
-  const { currentUser, token } = useAuth();
+  const { currentUser } = useAuth(); // We don't need token or getToken anymore
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,11 +51,7 @@ const SavingsGoals = () => {
   const fetchGoals = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/savings`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await axios.get(`${API_URL}/savings/${currentUser.uid}`);
       setGoals(response.data);
       setLoading(false);
     } catch (error) {
@@ -114,18 +112,10 @@ const SavingsGoals = () => {
       };
       
       if (editingGoal) {
-        await axios.put(`${API_URL}/api/savings/${editingGoal._id}`, goalData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await axios.put(`${API_URL}/savings/${currentUser.uid}/${editingGoal._id}`, goalData);
         toast.success('Savings goal updated successfully');
       } else {
-        await axios.post(`${API_URL}/api/savings`, goalData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await axios.post(`${API_URL}/savings/${currentUser.uid}`, goalData);
         toast.success('Savings goal created successfully');
       }
       
@@ -140,11 +130,7 @@ const SavingsGoals = () => {
   const deleteGoal = async (goalId) => {
     if (window.confirm('Are you sure you want to delete this savings goal?')) {
       try {
-        await axios.delete(`${API_URL}/api/savings/${goalId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await axios.delete(`${API_URL}/savings/${currentUser.uid}/${goalId}`);
         toast.success('Savings goal deleted successfully');
         fetchGoals();
       } catch (error) {

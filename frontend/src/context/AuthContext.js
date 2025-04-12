@@ -23,9 +23,30 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [token, setToken] = useState(null);
 
   // API base URL
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  console.log('AuthContext - API_URL:', API_URL);
+
+  // Get current user's token
+  const getToken = async () => {
+    if (currentUser) {
+      try {
+        console.log('Getting fresh token for user:', currentUser.uid);
+        const newToken = await currentUser.getIdToken(true);
+        console.log('Token retrieved successfully');
+        setToken(newToken);
+        return newToken;
+      } catch (error) {
+        console.error("Error getting token:", error);
+        return null;
+      }
+    } else {
+      console.log('No current user to get token for');
+      return null;
+    }
+  };
 
   // Register with email and password
   async function register(email, password, displayName) {
@@ -39,27 +60,19 @@ export function AuthProvider({ children }) {
       // Get ID token
       const token = await userCredential.user.getIdToken();
       
+      // Register user in our backend
       try {
-        // Register user in our backend
-        await axios.post(`${API_URL}/users/register`, {
-          firebase_uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          display_name: displayName || userCredential.user.displayName,
-          photo_url: userCredential.user.photoURL
-        }, {
+        await axios.post(`${API_URL}/users/register`, {}, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
+        console.log("User registered successfully in backend");
       } catch (apiError) {
         console.error("Backend registration error:", apiError);
         // Continue with the registration process even if backend fails
-        // This will allow users to still use the app, and we can sync with backend later
       }
 
-      // Sign out after registration so user can explicitly sign in
-      await signOut(auth);
-      
       return userCredential.user;
     } catch (err) {
       setError(err.message);
@@ -71,6 +84,12 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Get and store the token immediately
+      const newToken = await userCredential.user.getIdToken();
+      setToken(newToken);
+      console.log('Token set after login');
+      
       return userCredential.user;
     } catch (err) {
       setError(err.message);
@@ -84,43 +103,25 @@ export function AuthProvider({ children }) {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       
-      // Get ID token
-      const token = await userCredential.user.getIdToken();
-      
-      let isNewUser = false;
+      // Get ID token and set it immediately
+      const newToken = await userCredential.user.getIdToken();
+      setToken(newToken);
+      console.log('Token set after Google login');
       
       try {
-        // Try to register user in our backend (in case they're new)
-        await axios.post(`${API_URL}/users/register`, {
-          firebase_uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          display_name: userCredential.user.displayName,
-          photo_url: userCredential.user.photoURL
-        }, {
+        // Register user in our backend (this is idempotent - won't create duplicates)
+        await axios.post(`${API_URL}/users/register`, {}, {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${newToken}`
           }
         });
-        // If we get here without an error, this was a new user registration
-        isNewUser = true;
+        console.log("User registered/verified in backend after Google login");
       } catch (error) {
-        // If user already exists (409 conflict), that's fine
-        if (error.response && error.response.status === 409) {
-          // It's an existing user
-          isNewUser = false;
-        } else {
-          console.error("Backend registration error:", error);
-          // Continue with the registration process even if backend fails
-          isNewUser = true;
-        }
+        console.error("Backend registration error after Google login:", error);
+        // Continue even if backend registration fails
       }
       
-      // If this was a new user registration, sign out so they can explicitly sign in
-      if (isNewUser) {
-        await signOut(auth);
-      }
-      
-      return { user: userCredential.user, isNewUser };
+      return { user: userCredential.user, isNewUser: false };
     } catch (err) {
       // Handle specific Firebase auth errors
       if (err.code === 'auth/popup-closed-by-user') {
@@ -153,55 +154,136 @@ export function AuthProvider({ children }) {
     if (!currentUser) return null;
     
     try {
-      const token = await currentUser.getIdToken();
-      const response = await axios.get(`${API_URL}/users/me`, {
+      const currentToken = token || await getToken();
+      if (!currentToken) {
+        console.error("No token available to fetch user profile");
+        return null;
+      }
+      
+      console.log(`Fetching profile for user ${currentUser.uid}`);
+      const response = await axios.get(`${API_URL}/users/${currentUser.uid}`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${currentToken}`
         }
       });
       
+      console.log("User profile fetched:", response.data);
       setUserProfile(response.data);
       return response.data;
     } catch (err) {
       console.error("Error fetching user profile:", err);
-      // Don't set an error message for users as this is a background operation
-      // Just return null so the app can continue functioning
       return null;
     }
   }
 
-  // Update user profile
-  async function updateUserProfile(profileData) {
+  // Fetch user dashboard data (profile + budgets + savings)
+  async function fetchUserDashboard() {
     if (!currentUser) return null;
     
     try {
-      const token = await currentUser.getIdToken();
-      const response = await axios.put(`${API_URL}/users/me`, profileData, {
+      const currentToken = token || await getToken();
+      if (!currentToken) {
+        console.error("No token available to fetch user dashboard");
+        return null;
+      }
+      
+      console.log(`Fetching dashboard for user ${currentUser.uid}`);
+      const response = await axios.get(`${API_URL}/users/${currentUser.uid}/dashboard`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${currentToken}`
         }
       });
       
-      setUserProfile(response.data);
+      console.log("User dashboard fetched:", response.data);
+      // Update user profile from dashboard data
+      setUserProfile(response.data.profile);
       return response.data;
     } catch (err) {
-      setError(err.message);
+      console.error("Error fetching user dashboard:", err);
+      return null;
+    }
+  }
+
+  // Update user profile in backend
+  async function updateUserProfileInBackend(profileData) {
+    if (!currentUser) throw new Error('No user logged in');
+    
+    try {
+      const currentToken = token || await getToken();
+      if (!currentToken) {
+        throw new Error("No token available to update user profile");
+      }
+      
+      console.log(`Updating profile for user ${currentUser.uid}:`, profileData);
+      const response = await axios.put(
+        `${API_URL}/users/${currentUser.uid}`, 
+        profileData,
+        {
+          headers: {
+            Authorization: `Bearer ${currentToken}`
+          }
+        }
+      );
+      
+      console.log("Profile update response:", response.data);
+      // Update local user profile state
+      setUserProfile({
+        ...userProfile,
+        ...profileData
+      });
+      
+      return response.data;
+    } catch (err) {
+      console.error("Error updating user profile in backend:", err);
       throw err;
+    }
+  }
+
+  // Update user profile (combined Firebase + backend)
+  async function updateUserProfile(profileData) {
+    try {
+      if (!currentUser) throw new Error('No user logged in');
+      
+      // Only update Firebase profile if displayName is changing
+      if (profileData.displayName && profileData.displayName !== currentUser.displayName) {
+        await updateProfile(currentUser, {
+          displayName: profileData.displayName
+        });
+        
+        // Update the current user state
+        setCurrentUser({
+          ...currentUser,
+          displayName: profileData.displayName
+        });
+      }
+      
+      // Update profile in backend
+      await updateUserProfileInBackend(profileData);
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
     }
   }
 
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed:", user ? user.uid : "logged out");
       setCurrentUser(user);
-      setLoading(false);
       
       if (user) {
+        // Get the token
+        await getToken();
         // Fetch user profile when authenticated
         await fetchUserProfile();
       } else {
         setUserProfile(null);
+        setToken(null);
       }
+      
+      setLoading(false);
     });
     
     return unsubscribe;
@@ -212,13 +294,15 @@ export function AuthProvider({ children }) {
     userProfile,
     loading,
     error,
-    register,
     login,
-    loginWithGoogle,
+    register,
     logout,
     resetPassword,
+    loginWithGoogle,
     fetchUserProfile,
-    updateUserProfile
+    fetchUserDashboard,
+    updateUserProfile,
+    getToken
   };
 
   return (
