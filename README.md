@@ -1,7 +1,7 @@
 # AI Finance Platform - SmartSaver
 
 A full-stack AI-powered finance management platform built with Next.js, Tailwind CSS, Prisma, Clerk, Inngest, and more. This application helps users manage their finances, track expenses, set budgets, and get AI-powered insights.
-
+App link - https://smart-saver-rust.vercel.app/
 
 ## Features
 
